@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flipulator - Multi-Unit Flip Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #111;
+            color: #f5f5f7;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .form-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.5);
+            border-color: #007aff;
+        }
+
+        * {
+            transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        input[type="number"] { -moz-appearance: textfield; }
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        
+        .profit-gradient {
+            background: linear-gradient(45deg, #34d399, #22c55e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .loss-gradient {
+            background: linear-gradient(45deg, #f87171, #ef4444);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+
+        @media (min-width: 1024px) {
+            .main-container {
+                flex-direction: row;
+                align-items: flex-start;
+                gap: 3rem;
+                padding: 2rem;
+            }
+            .calculator-section {
+                flex: 1;
+                max-width: 500px;
+            }
+            .results-section {
+                flex: 1;
+            }
+        }
+
+        .calculator-card {
+            background-color: #1c1c1e;
+            border-radius: 1rem;
+            border: 1px solid #374151;
+            padding: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .input-group {
+            margin-bottom: 2rem;
+        }
+
+        .input-grid-2 {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        .input-grid-4 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        @media (min-width: 640px) {
+            .input-grid-2 {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .input-grid-4 {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        .form-input {
+            width: 100%;
+            background-color: #2c2c2e;
+            border: 1px solid #4b5563;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            color: #f5f5f7;
+            font-size: 1rem;
+        }
+
+        .form-input::placeholder {
+            color: #6b7280;
+            font-style: italic;
+        }
+
+        .currency-input { position: relative; }
+        .currency-input::before {
+            content: '$';
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+            pointer-events: none;
+        }
+        .currency-input input { padding-left: 1.75rem; }
+
+        .percent-input { position: relative; }
+        .percent-input::after {
+            content: '%';
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+            pointer-events: none;
+        }
+        .percent-input input { padding-right: 2rem; }
+
+        .results-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-top: 2rem; }
+        @media (min-width: 640px) { .results-grid { grid-template-columns: repeat(3, 1fr); } }
+
+        .result-card { background-color: #1c1c1e; border: 1px solid #374151; border-radius: 0.75rem; padding: 1.5rem; text-align: center; }
+        @media (min-width: 1024px) { .result-card { text-align: left; } }
+        
+        .profit-display { font-size: 3rem; font-weight: 800; line-height: 0.9; margin-bottom: 2rem; }
+        @media (min-width: 640px) { .profit-display { font-size: 4rem; } }
+        @media (min-width: 1024px) { .profit-display { font-size: 5rem; } }
+
+        .action-buttons { display: flex; gap: 1rem; flex-wrap: wrap; }
+
+        .btn { padding: 0.5rem 1rem; border-radius: 0.5rem; border: 1px solid #374151; background-color: #2c2c2e; color: #f5f5f7; font-size: 0.875rem; font-weight: 500; cursor: pointer; }
+        .btn:hover { background-color: #374151; }
+        .btn-primary { background-color: #007aff; border-color: #007aff; }
+        .btn-primary:hover { background-color: #0056cc; }
+
+        .footer { background-color: #1c1c1e; border: 1px solid #374151; border-radius: 1rem; padding: 2rem; margin-top: 3rem; max-width: 1200px; margin-left: auto; margin-right: auto; }
+        .footer h3 { color: #34d399; font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; }
+        .footer h4 { color: #e5e7eb; font-size: 1rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; }
+        .footer p, .footer li { color: #9ca3af; line-height: 1.6; }
+        .footer ul { padding-left: 1.5rem; }
+        #fileInput { display: none; }
+
+        /* Toggle Switch Styles */
+        .toggle-switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #4b5563; border-radius: 34px; transition: .4s; }
+        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; border-radius: 50%; transition: .4s; }
+        input:checked + .slider { background-color: #34d399; }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        /* Multi-Unit Section Animation */
+        .multi-unit-section { max-height: 0; overflow: hidden; opacity: 0; transition: max-height 0.5s ease-out, opacity 0.5s ease-out; }
+        .multi-unit-section.visible { max-height: 200px; opacity: 1; }
+
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="calculator-section">
+            <div id="calculator" class="calculator-card">
+                <div style="margin-bottom: 2rem;">
+                    <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;">🏚️ Flipulator</h1>
+                    <p style="color: #9ca3af; margin: 0;">Enter your numbers for estimated profitability.</p>
+                </div>
+                
+                <div class="input-group">
+                    <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; color: #e5e7eb;">Property</h3>
+                    <div class="input-grid-2">
+                        <div>
+                            <label for="price" class="block text-sm font-medium text-gray-400 mb-2">Purchase Price</label>
+                            <div class="currency-input"><input id="price" type="text" placeholder="400,000" class="form-input"></div>
+                        </div>
+                        <div>
+                            <label for="arv" class="block text-sm font-medium text-gray-400 mb-2">After Repair Value</label>
+                            <div class="currency-input"><input id="arv" type="text" placeholder="625,000" class="form-input"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; color: #e5e7eb;">Costs</h3>
+                    <div class="input-grid-2">
+                        <div>
+                            <label for="rehabCosts" class="block text-sm font-medium text-gray-400 mb-2">Rehab & Repairs</label>
+                            <div class="currency-input"><input id="rehabCosts" type="text" placeholder="75,000" class="form-input"></div>
+                        </div>
+                        <div>
+                            <label for="transactionCostsPct" class="block text-sm font-medium text-gray-400 mb-2">Total Transaction (%)</label>
+                            <div class="percent-input"><input id="transactionCostsPct" type="text" placeholder="10" class="form-input"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; color: #e5e7eb;">Terms</h3>
+                    <div class="input-grid-4">
+                        <div>
+                            <label for="downPct" class="block text-sm font-medium text-gray-400 mb-2">Down (%)</label>
+                            <div class="percent-input"><input id="downPct" type="text" placeholder="20" class="form-input"></div>
+                        </div>
+                        <div>
+                            <label for="rate" class="block text-sm font-medium text-gray-400 mb-2">Rate (%)</label>
+                            <div class="percent-input"><input id="rate" type="text" placeholder="12.5" class="form-input"></div>
+                        </div>
+                        <div>
+                            <label for="months" class="block text-sm font-medium text-gray-400 mb-2">Hold (Mo)</label>
+                            <input id="months" type="text" placeholder="7" class="form-input">
+                        </div>
+                        <div>
+                            <label for="monthlyCosts" class="block text-sm font-medium text-gray-400 mb-2">Monthly ($)</label>
+                            <div class="currency-input"><input id="monthlyCosts" type="text" placeholder="1,400" class="form-input"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; color: #e5e7eb;">Deal Type</h3>
+                    <div class="flex items-center justify-between bg-gray-800 p-3 rounded-lg">
+                        <span class="text-gray-400">Single Family / <strong class="text-emerald-400">Multi-Unit</strong></span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="multiUnitToggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div id="multiUnitSection" class="multi-unit-section mt-4">
+                        <div class="input-grid-2">
+                             <div>
+                                <label for="numUnits" class="block text-sm font-medium text-gray-400 mb-2">Number of Units</label>
+                                <input id="numUnits" type="text" placeholder="4" class="form-input">
+                            </div>
+                            <div>
+                                <label for="monthlyRentalIncome" class="block text-sm font-medium text-gray-400 mb-2">Total Monthly Rental Income</label>
+                                <div class="currency-input"><input id="monthlyRentalIncome" type="text" placeholder="5,000" class="form-input"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="loadedFileContainer" style="display: none; margin-bottom: 1.5rem; background-color: #2c2c2e; padding: 0.75rem 1rem; border-radius: 0.5rem; border: 1px solid #4b5563; align-items: center; justify-content: space-between;">
+                    <span id="loadedFileName" class="text-sm text-gray-400 whitespace-nowrap overflow-hidden text-ellipsis"></span>
+                    <button id="clearLoadedFileBtn" class="bg-none border-none text-gray-400 cursor-pointer text-2xl leading-none p-0 pl-4">&times;</button>
+                </div>
+                
+                <div class="action-buttons">
+                    <button id="saveBtn" class="btn btn-primary">💾 Save Estimate</button>
+                    <button id="loadBtn" class="btn">📂 Load Estimate</button>
+                    <button id="clearBtn" class="btn">🔄 Reset to Examples</button>
+                    <input type="file" id="fileInput" accept=".txt,.json" />
+                </div>
+            </div>
+        </div>
+
+        <div class="results-section">
+            <div style="text-align: center;">
+                <h2 style="font-size: 1.25rem; font-weight: 500; color: #9ca3af; margin-bottom: 1rem;">Estimated Profit</h2>
+                <div id="kProfit" class="profit-display">$0</div>
+            </div>
+            
+            <div class="results-grid">
+                <div class="result-card">
+                    <div class="flex items-center justify-center lg:justify-start gap-2 mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                        <span class="text-sm font-medium text-gray-400">Cash Needed</span>
+                    </div>
+                    <p id="kCash" class="text-2xl font-bold m-0">$0</p>
+                </div>
+                <div class="result-card">
+                    <div class="flex items-center justify-center lg:justify-start gap-2 mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                        <span class="text-sm font-medium text-gray-400">ROI</span>
+                    </div>
+                    <p id="kROI" class="text-2xl font-bold m-0">0%</p>
+                </div>
+                <div class="result-card">
+                    <div class="flex items-center justify-center lg:justify-start gap-2 mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <span class="text-sm font-medium text-gray-400">Annualized</span>
+                    </div>
+                    <p id="kAnnROI" class="text-2xl font-bold m-0">0%</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div style="padding: 0 1.5rem; margin-bottom: 2rem;">
+        <div class="footer">
+            <h3>How to Use the Flipulator</h3>
+            <h4>1. The Property 🏠</h4>
+            <ul>
+                <li><strong>Purchase Price:</strong> The amount you will pay to buy the property.</li>
+                <li><strong>After Repair Value (ARV):</strong> What the property will be worth after renovations. <em>Pro Tip: This is the most important number to get right. Ask a real estate agent for "comps" (comparable recently sold properties) and be conservative with your estimate.</em></li>
+            </ul>
+            <h4>2. The Costs 🛠️</h4>
+            <ul>
+                <li><strong>Rehab & Repairs:</strong> The total cost of all labor and materials for the renovation. <em>Pro Tip: Get detailed quotes from contractors and always add a 15-20% contingency fund for unexpected issues.</em></li>
+                <li><strong>Total Transaction (%):</strong> Covers all closing costs for both buying and selling (realtor fees, title insurance, taxes). <em>Pro Tip: 10% is a safe estimate. The biggest cost is usually the 5-6% real estate agent commission on the final sale.</em></li>
+            </ul>
+            <h4>3. The Money 💰</h4>
+            <ul>
+                <li><strong>Down (%):</strong> The percentage of the purchase price you pay in cash. This depends on your loan type; hard money loans often require 10-25%.</li>
+                <li><strong>Rate (%):</strong> The annual interest rate for your loan. Hard money loans for flips are typically much higher (12-18%) than standard mortgages.</li>
+                <li><strong>Hold (Mo):</strong> The total project duration in months, from buying to selling. <em>Pro Tip: Be realistic. A typical timeline is 1 month to buy, 3-4 months to renovate, and 2-3 months to sell. Always add a buffer for delays.</em></li>
+                <li><strong>Monthly ($):</strong> Your recurring carrying costs, NOT including the loan. This covers property taxes, insurance, and utilities. <em>Pro Tip: Don't forget this! These costs directly eat into your profit every month you own the property.</em></li>
+            </ul>
+            <h3>Adapting for Multi-Unit Flips 🏢</h3>
+            <p>Flipping a duplex, triplex, or small apartment building? Use the "Multi-Unit" toggle in the calculator. Here's how to adjust your numbers:</p>
+            <ul>
+                <li><strong>ARV:</strong> Enter the total After Repair Value for the entire building. This might be based on what a similar, renovated multi-unit building sold for, or the sum of what each unit could sell for individually as a condo.</li>
+                <li><strong>Rehab & Repairs:</strong> Your costs will be higher. You're renovating multiple kitchens and bathrooms. However, costs for shared systems (like a roof or boiler) are spread across all units, which can be more efficient.</li>
+                <li><strong>Monthly ($) - The Big Advantage:</strong> If the property has tenants, you can collect rent during the renovation! **The calculator automatically subtracts the rental income you enter from your monthly costs,** showing you how income can offset your holding expenses.</li>
+                <li><strong>Financing:</strong> Loans for multi-unit properties (5+ units) are often commercial loans, which may require a larger down payment (25-30%). You can adjust the "Down %" field to reflect this.</li>
+            </ul>
+            <h4>📊 The Calculations Explained</h4>
+            <ul>
+                <li><strong>Profit:</strong> After Repair Value - (Purchase Price + All Rehab, Holding, and Transaction Costs)</li>
+                <li><strong>Cash Needed:</strong> Down Payment + Rehab Costs + Upfront Transaction Costs + Total Holding Costs</li>
+                <li><strong>ROI (Return on Investment):</strong> Profit ÷ Cash Needed</li>
+                <li><strong>Annualized ROI:</strong> Your project's ROI expressed as an equivalent annual rate.</li>
+            </ul>
+            <p style="font-size: 0.875rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #374151;"><em>Disclaimer: This tool provides estimates for educational purposes. Always consult with local real estate professionals, contractors, and financial advisors. Conduct thorough due diligence before making any investment decisions.</em></p>
+        </div>
+    </div>
+<script>
+    const $ = id => document.getElementById(id);
+    const calculator = $('calculator');
+    const kpiElements = { profit: $('kProfit'), cash: $('kCash'), roi: $('kROI'), annROI: $('kAnnROI') };
+    const loadedFileContainer = $('loadedFileContainer');
+    const loadedFileName = $('loadedFileName');
+    const multiUnitToggle = $('multiUnitToggle');
+    const multiUnitSection = $('multiUnitSection');
+    
+    let currentMetrics = { profit: 0, cash: 0, roi: 0, annROI: 0 };
+    const exampleValues = {
+        price: '400,000', arv: '625,000', rehabCosts: '75,000', transactionCostsPct: '10',
+        downPct: '20', rate: '12.5', months: '7', monthlyCosts: '1,400',
+        numUnits: '4', monthlyRentalIncome: '5,000'
+    };
+
+    const parseNumber = (str) => parseFloat(str.replace(/[,$%]/g, '')) || 0;
+    const formatNumber = (num) => num.toLocaleString('en-US');
+
+    const formatCurrency = (input) => {
+        let value = input.value.replace(/[^0-9.-]/g, '');
+        if (value && value !== '-') {
+            let num = parseFloat(value);
+            if (!isNaN(num)) input.value = formatNumber(Math.round(num));
+        }
+    };
+
+    const formatPercentOrNumber = (input) => { input.value = input.value.replace(/[^0-9.]/g, ''); };
+    
+    const getNum = (id) => {
+        const el = $(id);
+        const val = el.value || el.placeholder;
+        return parseNumber(val);
+    };
+
+    const hasValidInputs = () => getNum('price') > 0 && getNum('arv') > 0;
+
+    function saveEstimate() {
+        const data = {
+            price: $('price').value || $('price').placeholder,
+            arv: $('arv').value || $('arv').placeholder,
+            rehabCosts: $('rehabCosts').value || $('rehabCosts').placeholder,
+            transactionCostsPct: $('transactionCostsPct').value || $('transactionCostsPct').placeholder,
+            downPct: $('downPct').value || $('downPct').placeholder,
+            rate: $('rate').value || $('rate').placeholder,
+            months: $('months').value || $('months').placeholder,
+            monthlyCosts: $('monthlyCosts').value || $('monthlyCosts').placeholder,
+            isMultiUnit: multiUnitToggle.checked,
+            numUnits: $('numUnits').value || $('numUnits').placeholder,
+            monthlyRentalIncome: $('monthlyRentalIncome').value || $('monthlyRentalIncome').placeholder,
+            savedAt: new Date().toISOString()
+        };
+        const dataStr = JSON.stringify(data, null, 2);
+        const dataBlob = new Blob([dataStr], {type: 'text/plain;charset=utf-8'});
+        const arvValue = formatNumber(parseNumber(data.arv));
+        const date = new Date().toISOString().split('T')[0];
+        const filename = `Flip Estimate - $${arvValue} ARV - ${date}.txt`;
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(dataBlob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function loadEstimate(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                Object.keys(exampleValues).forEach(key => {
+                    const el = $(key);
+                    if (el && data[key] !== undefined) el.value = data[key];
+                    else if (el) el.value = '';
+                });
+
+                multiUnitToggle.checked = data.isMultiUnit || false;
+                multiUnitSection.classList.toggle('visible', multiUnitToggle.checked);
+                
+                calculateROI();
+                
+                loadedFileName.textContent = `📂 ${file.name}`;
+                loadedFileContainer.style.display = 'flex';
+                event.target.value = '';
+            } catch (error) {
+                alert('Error loading file. Please make sure it\'s a valid flip estimate file.');
+                loadedFileContainer.style.display = 'none';
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    function resetToExamples() {
+        Object.keys(exampleValues).forEach(key => {
+            const el = $(key);
+            if(el) {
+                el.value = '';
+                el.placeholder = exampleValues[key];
+            }
+        });
+        multiUnitToggle.checked = false;
+        multiUnitSection.classList.remove('visible');
+        loadedFileContainer.style.display = 'none';
+        calculateROI();
+    }
+
+    function animateValue(element, start, end, duration, isMoney) {
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            const currentVal = progress * (end - start) + start;
+            if (isMoney) {
+                element.textContent = (currentVal < 0 ? '-' : '') + '$' + Math.abs(Math.round(currentVal)).toLocaleString('en-US');
+            } else {
+                element.textContent = (currentVal * 100).toFixed(1) + '%';
+            }
+            if (progress < 1) window.requestAnimationFrame(step);
+        };
+        window.requestAnimationFrame(step);
+    }
+
+    function calculateROI() {
+        if (!hasValidInputs()) {
+            updateMetrics({ profit: 0, cash: 0, roi: 0, annROI: 0 });
+            return;
+        }
+        const price = getNum('price');
+        const arv = getNum('arv');
+        const rehabCosts = getNum('rehabCosts');
+        const transactionCostsPct = getNum('transactionCostsPct') / 100;
+        const downPct = getNum('downPct') / 100;
+        const rate = getNum('rate') / 100;
+        const months = getNum('months');
+        let monthlyCosts = getNum('monthlyCosts');
+
+        if (multiUnitToggle.checked) {
+            monthlyCosts -= getNum('monthlyRentalIncome');
+        }
+
+        if (price <= 0 || arv <= 0 || months <= 0 || downPct < 0 || downPct > 1) {
+            updateMetrics({ profit: 0, cash: 0, roi: 0, annROI: 0 });
+            return;
+        }
+
+        const acquisitionCosts = price * (transactionCostsPct / 2);
+        const sellingCosts = arv * (transactionCostsPct / 2);
+        const downPayment = price * downPct;
+        const loanAmount = price - downPayment;
+        const totalInterest = loanAmount * (rate / 12) * months;
+        const totalHoldingCosts = (monthlyCosts * months) + totalInterest;
+        const totalCosts = price + rehabCosts + acquisitionCosts + totalHoldingCosts + sellingCosts;
+        const profit = arv - totalCosts;
+        const cashNeeded = downPayment + rehabCosts + acquisitionCosts + totalHoldingCosts;
+        const roi = cashNeeded > 0 ? profit / cashNeeded : 0;
+        const annualizedROI = (roi > -1 && months > 0) ? Math.pow(1 + roi, 12 / months) - 1 : roi;
+        updateMetrics({ profit, cash: cashNeeded, roi, annROI: annualizedROI });
+    }
+
+    function updateMetrics(newMetrics) {
+        animateValue(kpiElements.profit, currentMetrics.profit, newMetrics.profit, 300, true);
+        animateValue(kpiElements.cash, currentMetrics.cash, newMetrics.cash, 300, true);
+        animateValue(kpiElements.roi, currentMetrics.roi, newMetrics.roi, 300, false);
+        animateValue(kpiElements.annROI, currentMetrics.annROI, newMetrics.annROI, 300, false);
+        kpiElements.profit.classList.toggle('profit-gradient', newMetrics.profit >= 0);
+        kpiElements.profit.classList.toggle('loss-gradient', newMetrics.profit < 0);
+        currentMetrics = newMetrics;
+    }
+
+    calculator.addEventListener('input', (e) => {
+        const id = e.target.id;
+        if (['price', 'arv', 'rehabCosts', 'monthlyCosts', 'monthlyRentalIncome'].includes(id)) formatCurrency(e.target);
+        if (['transactionCostsPct', 'downPct', 'rate', 'numUnits'].includes(id)) formatPercentOrNumber(e.target);
+        calculateROI();
+    });
+
+    multiUnitToggle.addEventListener('change', () => {
+        multiUnitSection.classList.toggle('visible', multiUnitToggle.checked);
+        if (!multiUnitToggle.checked) {
+            $('numUnits').value = '';
+            $('monthlyRentalIncome').value = '';
+        }
+        calculateROI();
+    });
+
+    $('saveBtn').addEventListener('click', saveEstimate);
+    $('loadBtn').addEventListener('click', () => $('fileInput').click());
+    $('fileInput').addEventListener('change', loadEstimate);
+    $('clearBtn').addEventListener('click', resetToExamples);
+    $('clearLoadedFileBtn').addEventListener('click', () => { loadedFileContainer.style.display = 'none'; });
+    
+    document.addEventListener('DOMContentLoaded', resetToExamples);
+</script>
+</body>
+</html>
